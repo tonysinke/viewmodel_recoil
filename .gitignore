@@ -1,0 +1,77 @@
+# ============================================================
+#  VMRecoil / viewmodel_recoil  .gitignore
+#  .NET 8 + CounterStrikeSharp 插件工程
+# ============================================================
+
+# ---------------- 构建产物 ----------------
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ll]og/
+[Ll]ogs/
+*.dll
+*.exe
+*.pdb
+*.mdb
+*.lib
+*.exp
+*.ilk
+*.obj
+*.o
+*.gch
+*.pch
+*.cache
+*.tlog
+*.lastbuildstate
+*.deps.json
+*.runtimeconfig.json
+*.nupkg
+*.snupkg
+
+# ---------------- IDE ----------------
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.VC.db
+*.psess
+*.vsp
+
+# ---------------- 插件运行时数据 ----------------
+vmrecoil_user.cfg
+*.log
+*.bak
+*.dmp
+*.mdmp
+
+# ---------------- 本地客户端 / 逆向中间件 ----------------
+client.dll
+*.vpk
+*.dem
+depot_*/
+ida_*.idb
+ida_*.i64
+*.til
+*.asm
+
+# ---------------- 操作系统 / 临时文件 ----------------
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+._*
+__MACOSX/
+*.tmp
+*.temp
+*.swp
+*~
+*.orig
+*.rej
