@@ -1,3 +1,14 @@
+---
+AIGC:
+    Label: "1"
+    ContentProducer: 001191440300708461136T1XGW3
+    ProduceID: 236021e9d3b6d35e9035f1c23f28aea0_5280c7a9d2b511f1b84e52540064ee0f
+    ReservedCode1: 1QKjy7G5dGhNA7WqzZKEhw4ro+nyWiIRJDL36cyPonSh6LJJmJZYtBTCvRG0V+DFEL6UvM4HctFzU2Qxk4rxQpZxZH2LYeLBGpXupcq8TurwE/V9aXHkOH915rttrVmfHo3MZZKPfxFa3dMFkRk4Mkjm1LP2TwARF3AOUWoA0MgW8zpVjVED34mxMsc=
+    ContentPropagator: 001191440300708461136T1XGW3
+    PropagateID: 236021e9d3b6d35e9035f1c23f28aea0_5280c7a9d2b511f1b84e52540064ee0f
+    ReservedCode2: 1QKjy7G5dGhNA7WqzZKEhw4ro+nyWiIRJDL36cyPonSh6LJJmJZYtBTCvRG0V+DFEL6UvM4HctFzU2Qxk4rxQpZxZH2LYeLBGpXupcq8TurwE/V9aXHkOH915rttrVmfHo3MZZKPfxFa3dMFkRk4Mkjm1LP2TwARF3AOUWoA0MgW8zpVjVED34mxMsc=
+---
+
 # VMRecoil
 
 把 CS2 的 `viewmodel_recoil` 做成一个**真正可用的 cvar**（`1` 开 / `0` 关），并自动持久化。
