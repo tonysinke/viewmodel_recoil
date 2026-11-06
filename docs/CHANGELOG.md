@@ -1,5 +1,26 @@
 # Changelog
 
+## v3.0.0 — 长期做法版（`auto/`）
+
+与根目录 `src/`（v2.x）**并存**的另一个实现，功能等价，定位方式换成"不需要每版重编译"的做法。
+**v2.x 一行未改。**
+
+### 新增
+- `auto/src/` — `VMRecoilAuto`：
+  - 常量定位改为 **`0.325f` 值指纹（扫描全部可读节）+ `movss` RIP 引用反查**，代码中零硬编码地址；
+  - cvar 注册三件套（`refinit` / `regcore` / `getfloat`）签名外部化到 `vmrecoil_auto.json`，失效改配置即可，免重编译；
+  - `getfloat` 降级为 optional：不唯一时自动改用 CounterStrikeSharp `ConVar.Find()` 通道；
+  - 定位结果写入状态文件，热重载时先验值再复用；
+  - 安全闸门：值不匹配 / 常量不唯一 / 引用不唯一 → 空转，一个字节都不写。
+- `auto/test/LocatorTest` — 离线自检工具，**不装游戏**即可用真实 `client.dll` 复现定位结果。
+- `docs/VERIFICATION.md` — 定位算法验证报告（含 1.40.4.5 与 1.41.9.x 两版实测数据与复现步骤）。
+- `auto/README.md` — 长期做法版完整说明：原理 / 配置项逐条 / 故障排查表 / 签名失效自救步骤。
+
+### 验证
+- 1.40.4.5：值指纹唯一命中 `0x12E11BC`，movss 引用 1 条，`refinit`/`regcore` 签名唯一 → PASS
+- 1.41.9.x：值指纹唯一命中 `0x1D12A38`，movss 引用 1 条，`refinit`/`regcore` 签名唯一 → PASS
+- 两版算法零改动、零参数调整，结果均与实机已知地址一致。
+
 ## v2.4.0
 
 基于 v2.3.0 的静态审查（12 项缺陷）改造。

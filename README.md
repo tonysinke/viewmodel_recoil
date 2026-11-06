@@ -61,6 +61,28 @@ CS2 客户端原本把视角后坐力缩放写死成 `client.dll` 里的一个 f
 
 ---
 
+## 长期做法版（VMRecoilAuto）
+
+根目录这一版（v2.x）**强依赖 client.dll 版本**：客户端一更新 RVA 就变，得重新编译。
+
+如果你不想每次 CS2 更新后都来找人重编译，本仓库还提供了一个**并存的另一版**：
+
+> **[`auto/`](auto/README.md)** — v3，地址零硬编码，用 `0.325f` 值指纹 + `movss` 引用反查自动定位常量；
+> cvar 三件套签名放在外部 JSON 里，失效了自己改配置就行，不用重编译。
+
+| | 根目录 v2.x | `auto/` v3 |
+|---|---|---|
+| 常量定位 | 硬编码 RVA + AOB | 值指纹 + 引用反查（无地址） |
+| 换版本 | 重编译 | 不用（改 JSON 即可） |
+| 功能 | 真实 cvar / 轮询自愈 / 持久化 / 卸载恢复 | 完全相同 |
+| 插件名 | `VMRecoil` | `VMRecoilAuto`（可共存） |
+| 已验证版本 | 1.40.4.5 | 1.40.4.5 与 1.41.9.x 均 PASS |
+
+两个版本互不影响，装哪个都行；细节、配置项、故障排查表、跨版本实测数据都在 [`auto/README.md`](auto/README.md)，
+验证方法（不装游戏也能复现）在 [`docs/VERIFICATION.md`](docs/VERIFICATION.md)。
+
+---
+
 ## 编译
 
 需要 .NET 8 SDK。
@@ -104,10 +126,20 @@ viewmodel_recoil/
 │   ├── VMRecoilPlugin.cs     插件主体
 │   ├── AobLocator.cs         签名定位层
 │   └── VMRecoil.csproj
+├── auto/                     长期做法版（v3，地址零硬编码）
+│   ├── src/
+│   │   ├── VMRecoilAutoPlugin.cs   插件主体
+│   │   ├── AutoLocator.cs          值指纹 + 引用反查定位层
+│   │   ├── AutoConfig.cs           外部配置层
+│   │   └── VMRecoilAuto.csproj
+│   ├── test/                 离线定位自检工具（不开游戏也能验证）
+│   ├── build.cmd
+│   └── README.md             这一版的完整说明
 ├── examples/
 │   └── vmrecoil.cfg          示例配置
 ├── docs/
-│   └── CHANGELOG.md
+│   ├── CHANGELOG.md
+│   └── VERIFICATION.md       定位算法验证报告（可复现）
 ├── build.cmd
 ├── README.md
 ├── LICENSE
