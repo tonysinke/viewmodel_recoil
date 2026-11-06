@@ -4,7 +4,9 @@
 > 你可以只用其中一个，也可以两个都不装。
 >
 > 一句话区别：
-> **v2.x 里写死了 `0x12E11BC`；v3 里一个地址都没有。**
+> **v2.x 的常量定位写死了 `0x12E11BC`；v3 的常量定位不含任何硬编码地址。**
+> （配置里的 `baselineRva` 是保留字段，只用来在日志里算"RVA 差值"，不参与选择。）
+
 
 ---
 
@@ -119,7 +121,7 @@ const_rva 0x12E11BC
 |---|---|
 | 值指纹 0 命中 | 空转，日志明确说"镜像里找不到 0.325，可能 Valve 改值了" |
 | 值指纹多命中 | 默认放弃，日志列出所有候选和各自引用数 |
-| 引用数 ≠ 1 | 默认放弃 |
+| 引用数 ≠ 1 | 默认放弃（`requireUniqueReference: false` 时放宽为 ≥1 条） |
 | `VirtualProtect` 失败 | 报错返回，不重试 |
 | 写入后回读不一致 | 重试 1 次，仍不一致则报错并保持原状态 |
 | 任何未捕获异常 | `Load` 整体 try/catch，异常即空转 |
@@ -191,9 +193,10 @@ dotnet build auto\src\VMRecoilAuto.csproj -c Release
 ```
 viewmodel_recoil 0      # 关闭视角后坐力（常量写 0.0）
 viewmodel_recoil 1      # 恢复原版（常量写 0.325）
-viewmodel_recoil 0.5    # 中间值，按比例缩放
+viewmodel_recoil 0.7    # 但 >=0.5 一律按"开"处理（写 onValue），做的不是比例缩放
 ```
 
+- **只有开 / 关两态**：`≥ 0.5` → 写 `onValue`，`< 0.5` → 写 `offValue`，**不做比例缩放**（写 0.5 / 0.7 / 1 效果相同）；
 - 值会被写进 `vmrecoil_auto_user.cfg`，换图 / 重载 / 重开游戏自动恢复；
 - 卸载插件时会把常量恢复成 `onValue`（默认 `0.325`），不会留下"后坐力永久消失"。
 
@@ -209,6 +212,8 @@ viewmodel_recoil 0.5    # 中间值，按比例缩放
 
 首次运行自动生成在插件目录。支持 `//` 注释和尾随逗号。**改完保存 → `css_plugins reload VMRecoilAuto` 即生效，不用重编译。**
 
+下面示例里的三条 `pattern` 就是内置默认值，可整段照抄后只改需要动的那条；`baselineRva` 只是日志显示用。
+
 ```jsonc
 {
   "cvarName": "viewmodel_recoil",   // 控制台命令名
@@ -221,9 +226,9 @@ viewmodel_recoil 0.5    # 中间值，按比例缩放
     "rvaHints": []                  // 可选：已知地址优先尝试，例如 ["0x12E11BC"]
   },
   "cvarSignatures": {
-    "refinit":  { "pattern": "48 89 5C 24 08 ...", "baselineRva": "0x110EDB0" },
-    "regcore":  { "pattern": "48 89 5C 24 08 ...", "baselineRva": "0x110FAE0" },
-    "getfloat": { "pattern": "40 53 48 83 EC ...", "baselineRva": "0x110DA0", "optional": true }
+    "refinit":  { "pattern": "48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 B8 FF FF FF FF 49 0F", "baselineRva": "0x110EDB0" },
+    "regcore":  { "pattern": "48 89 5C 24 08 48 89 74 24 10 48 89 7C 24 18 55 41 54 41 55 41 56 41 57 48 8D 6C 24 D1", "baselineRva": "0x110FAE0" },
+    "getfloat": { "pattern": "40 53 48 83 EC 20 48 8B D9 E8 ?? ?? ?? ?? 48 85 C0 74 0A F3 0F 10 00 48 83 C4 20 5B C3", "baselineRva": "0x110DA0", "optional": true }
   }
 }
 ```
@@ -235,7 +240,7 @@ viewmodel_recoil 0.5    # 中间值，按比例缩放
 | `offValue` | 关闭时写入的值，一般 `0.0` |
 | `valueTolerance` | 建议 `1e-4`，上限 `0.01` |
 | `requireUniqueConstant` | 默认 `true`。设 `false` 可放宽到"多候选时找唯一引用的那个"，不推荐 |
-| `requireUniqueReference` | 默认 `true`。同上，不推荐关 |
+| `requireUniqueReference` | 默认 `true`：常量必须**恰好被 1 条** `movss` 读。设 `false` 放宽为"被 ≥1 条读即可"（用于 Valve 把同一常量复制成多处引用的版本），不推荐 |
 | `rvaHints` | 纯加速用。填了会先试这个地址（**仍要验值**），不填完全自动 |
 | `cvarSignatures.*.pattern` | 字节 hex，空格分隔，`??` 表示通配 |
 | `cvarSignatures.*.baselineRva` | 只用于日志显示"RVA 差值"，不影响选择 |
@@ -257,7 +262,10 @@ viewmodel_recoil 0.5    # 中间值，按比例缩放
 | 日志关键字 | 含义 | 该怎么办 |
 |---|---|---|
 | `值指纹无命中` | 镜像里找不到 `onValue` 这个 float | 1) 确认 `onValue` 是否还等于原版常量（Valve 改了值就跟着改）；2) 确认插件改的确实是这一版 client.dll |
-| `指纹不唯一，主动放弃` | 有多处同值常量 | 日志会列出候选及引用数。确认后可以把唯一引用的那个 RVA 写进 `rvaHints` |
+| `指纹不唯一，主动放弃`（多候选） | 镜像里有多处同值常量 | 日志会列出每个候选及引用数。确认哪个是目标后，把该 RVA 写进 `rvaHints`；或设 `requireUniqueConstant: false` 采信"唯一被引用"的那个（不推荐） |
+| `值指纹唯一命中，但读到它的 movss 有 N 条` | 常量本身唯一，但读它的指令不止 1 条 | 确认无误后设 `requireUniqueReference: false`（放宽为 ≥1 条）；或把 `rvaHints` 指到已知 RVA（仍会验值） |
+| `值指纹唯一命中，但没有任何 movss 读它` | 结构对不上：这个 float 大概不是目标常量 | 别硬写。确认 `onValue` 是否正确、这份 `client.dll` 是否为你以为的那一版 |
+| `值指纹唯一命中，但此刻读到的值 ... 既不等于 onValue 也不等于 offValue` | 读到的瞬间值被改过 | 多半是别的插件在改同一常量，或 `onValue` 与实物不符。先关掉其它改后坐力的插件再试 |
 | `状态文件记录的 RVA ... 已不合法` | 客户端更新了，旧地址失效 | **正常现象**，插件会自动重新定位，不用管 |
 | `cvar 注册链签名不可用` | `refinit`/`regcore` 签名失效 | 见下一节，改 JSON 里的 pattern |
 | `getfloat 通道不可用` | 预期内降级 | 不用管 |
@@ -284,7 +292,7 @@ viewmodel_recoil 0.5    # 中间值，按比例缩放
 **情况 C：`refinit` / `regcore` 签名失效**
 
 1. 在 IDA 里找 `ConVarRef` 的初始化函数（特征：写 `-1` 到 `[rcx]`、清零 `[rcx+8]`、参数是 `(ConVarRef*, int, int16)`）；
-2. 取函数开头 20~30 字节，转成 `XX XX XX ...`；
+2. 取函数开头 20~30 字节，逐字节转成两位十六进制、空格分隔成一整串（这串就是 pattern，不要写省略号）；
 3. 填进 `cvarSignatures.refinit.pattern`（`??` 可通配相对调用/偏移）；
 4. 保存 → `css_plugins reload VMRecoilAuto`。
 

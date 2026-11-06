@@ -316,10 +316,14 @@ namespace VMRecoilAuto
                 h.Refs = _loc.CountRefs(h.Rva, out h.FirstRefRva);
             }
 
+            // requireUniqueReference = true  -> 常量必须恰好被 1 条 movss 读
+            // requireUniqueReference = false -> 放宽为"至少被 1 条 movss 读"（该开关真实生效，不是摆设）
+            bool needExactOneRef = _cfg.RequireUniqueReference;
             List<ConstantHit> unique = new List<ConstantHit>();
             foreach (ConstantHit h in cands)
             {
-                if (h.Refs == 1 && IsLegalValue(ReadFloat(IntPtr.Add(_modBase, h.Rva)))) unique.Add(h);
+                bool refOk = needExactOneRef ? (h.Refs == 1) : (h.Refs >= 1);
+                if (refOk && IsLegalValue(ReadFloat(IntPtr.Add(_modBase, h.Rva)))) unique.Add(h);
             }
 
             if (cands.Count == 1 && unique.Count == 1)
@@ -341,6 +345,40 @@ namespace VMRecoilAuto
                 Logger.LogWarning("[VMRecoilAuto] {0}；配置已允许常量不唯一，采信该候选", _locateReport);
                 SaveConstRva(h.Rva);
                 return IntPtr.Add(_modBase, h.Rva);
+            }
+
+            // 单候选但结构闸门没过：最常见于"常量唯一、但被多条 movss 读"
+            if (cands.Count == 1)
+            {
+                ConstantHit only = cands[0];
+                if (only.Refs == 0)
+                {
+                    _locateReport = string.Format(CultureInfo.InvariantCulture,
+                        "值指纹唯一命中（RVA 0x{0:X}），但没有任何 movss 读它", only.Rva);
+                    Logger.LogError("[VMRecoilAuto] {0}", _locateReport);
+                    Logger.LogError("[VMRecoilAuto] 已放弃改动，一个字节都没写。该 float 大概率不是目标常量，别硬写。");
+                }
+                else if (!IsLegalValue(ReadFloat(IntPtr.Add(_modBase, only.Rva))))
+                {
+                    _locateReport = string.Format(CultureInfo.InvariantCulture,
+                        "值指纹唯一命中（RVA 0x{0:X}），但此刻读到的值 {1:F6} 既不等于 onValue 也不等于 offValue",
+                        only.Rva, ReadFloat(IntPtr.Add(_modBase, only.Rva)));
+                    Logger.LogError("[VMRecoilAuto] {0}", _locateReport);
+                    Logger.LogError("[VMRecoilAuto] 已放弃改动，一个字节都没写。多半是别的插件/工具正在改这个常量，" +
+                                    "或 onValue 与实际值已不符。");
+                }
+                else
+                {
+                    _locateReport = string.Format(CultureInfo.InvariantCulture,
+                        "值指纹唯一命中（RVA 0x{0:X}），但读到它的 movss 有 {1} 条（requireUniqueReference={2}）",
+                        only.Rva, only.Refs,
+                        _cfg.RequireUniqueReference ? "true，要求恰好 1 条" : "false，要求 >=1 条");
+                    Logger.LogError("[VMRecoilAuto] {0}", _locateReport);
+                    Logger.LogError("[VMRecoilAuto] 已放弃改动，一个字节都没写。确认这条就是目标常量后，" +
+                                    "可把 vmrecoil_auto.json 里的 requireUniqueReference 设为 false（不推荐），" +
+                                    "或把该 RVA 写进 rvaHints（仍会验值）。");
+                }
+                return IntPtr.Zero;
             }
 
             // 走到这里说明指纹不够干净：宁可不动内存

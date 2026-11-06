@@ -46,7 +46,11 @@ _ReSharper*/
 *.vsp
 
 # ---------------- 插件运行时数据 ----------------
+# v2.x（根目录 src/）
 vmrecoil_user.cfg
+# v3（auto/）：首次运行自动生成的配置 + 定位状态文件
+vmrecoil_auto.json
+vmrecoil_auto_user.cfg
 *.log
 *.bak
 *.dmp

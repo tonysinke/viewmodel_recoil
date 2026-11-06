@@ -93,7 +93,7 @@ dotnet bin\Release\net8.0\LocatorTest.dll "D:\path\to\client.dll" 0x12E11BC
 3. **`getfloat` 的旧签名在新版彻底失效**（0 命中），放宽成通配后两版都变成 2 处命中、无法唯一区分。
    因此把它设计成 `optional`：不唯一就降级，只走 CounterStrikeSharp 的 `ConVar.Find()` 通道。
 4. **风险边界明确**：算法成立的前提是"`0.325` 这个值不变"且"只有一条 movss 读它"。
-   两条前提任一被打破，闸门会拒绝写入（空转），不会写错内存。
+   两条前提任一被打破，默认配置下闸门会拒绝写入（空转），不会写错内存。
 
 ---
 

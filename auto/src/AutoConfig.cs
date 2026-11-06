@@ -318,7 +318,7 @@ namespace VMRecoilAuto
             sb.AppendLine("    \"valueTolerance\": 0.0001,");
             sb.AppendLine("    // 常量在整个镜像（所有节）里必须只出现一次");
             sb.AppendLine("    \"requireUniqueConstant\": true,");
-            sb.AppendLine("    // 指向该常量的 movss 必须只出现一次");
+            sb.AppendLine("    // 指向该常量的 movss 必须只出现一次（设 false 放宽为 >=1 条，不推荐）");
             sb.AppendLine("    \"requireUniqueReference\": true,");
             sb.AppendLine("    // 可选：已知地址优先尝试，例如 [\"0x12E11BC\"]；留空则完全自动");
             sb.AppendLine("    \"rvaHints\": []");
